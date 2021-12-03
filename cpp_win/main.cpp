@@ -8,7 +8,7 @@ int main(void)
 {
   std::cout << "Start" << std::endl;
 
-  jay::SerialCommWin port("COM1");
+  jay::SerialCommWin port("COM3");
   port.openPort(1000000); // 1 Mbps
 
   uint8_t tx_packet[7]; // total_packet_length = 7
@@ -26,7 +26,7 @@ int main(void)
   tx_packet[6] = ~checksum; // checksum
 
 
-  uint8_t rx_packet[9];
+  uint8_t rx_packet[30] = { 0 };
   rx_packet[0] = 0xFF;
   rx_packet[1] = 0xFF;
   rx_packet[2] = 0x00; // reserved ID
@@ -36,12 +36,16 @@ int main(void)
   rx_packet[6] = 0x00; // parameter 3
   rx_packet[7] = 0x00; // parameter 4
   rx_packet[8] = 0x00; // check sum
+  rx_packet[9] = 0x00; // .
+  rx_packet[10] = 0x00; // .
+  rx_packet[11] = 0x00; // .
+
 
   while (true)
   {
-    if (kbhit())
+    if (_kbhit())
     {
-      if (getch() == 27)
+      if (_getch() == 27)
       {
         break;
       }
@@ -55,24 +59,62 @@ int main(void)
       break;
     }
 
+    //// get rx_packet
+    //uint8_t rx_length = 0;
+    ////uint8_t error = 0;
+    //while (true)
+    //{
+    //  rx_length = port.readPort(rx_packet, 1);
+    //  if (rx_length == 0)
+    //  {
+    //    std::cout << "" << std::endl;
+    //    break;
+    //  }
+    //  else
+    //  {
+    //    printf("%x/", rx_packet[0]);
+    //  }
+    //}
+
     // get rx_packet
     uint8_t rx_length = 0;
     uint8_t error = 0;
     checksum = 0;
     port.setPacketTimeout(9);
+
     while (true)
     {
-      rx_length += port.readPort(rx_packet, 9 - rx_length);
-      if (rx_length == 9)
+      rx_length += port.readPort(&rx_packet[rx_length], 9 - rx_length);
+
+      if (rx_length >= 9)
       {
-        for (uint16_t idx = 2; idx < 9 - 1; idx++)   // except header, checksum
-          checksum += rx_packet[idx];
-        checksum = ~checksum; // checksum
-        if (checksum != rx_packet[8])
+        uint8_t idx = 0;
+        //find header
+        for (idx = 0; idx < 8; idx++)
         {
-          error = 2;
+          if ((rx_packet[idx] == 0xFF) && (rx_packet[idx + 1] == 0xFF))
+            break;
         }
-        break;
+
+        if (idx != 0) //memmove : use for loop because it will be also used in arduino
+        {
+          for (uint8_t i = idx; i < rx_length; i++)
+            rx_packet[i - idx] = rx_packet[idx];
+          rx_length -= idx;
+        }
+
+        if (rx_length >= 9)
+        {
+          for (uint16_t idx = 2; idx < 9 - 1; idx++)   // except header, checksum
+            checksum += rx_packet[idx];
+          checksum = ~checksum; // checksum
+
+          if (checksum != rx_packet[8])
+          {
+            error = 2;
+            break;
+          }
+        }
       }
 
       if (port.isPacketTimeout())
@@ -80,7 +122,9 @@ int main(void)
         error = 1;
         break;
       }
+
     }
+
     
     //check error and print the value
     if (error == 0)
