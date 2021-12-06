@@ -58,29 +58,15 @@ int main(void)
       std::cout << "TX_FAIL" << std::endl;
       break;
     }
+    else
+      std::cout << "SEND" << std::endl;
 
-    //// get rx_packet
-    //uint8_t rx_length = 0;
-    ////uint8_t error = 0;
-    //while (true)
-    //{
-    //  rx_length = port.readPort(rx_packet, 1);
-    //  if (rx_length == 0)
-    //  {
-    //    std::cout << "" << std::endl;
-    //    break;
-    //  }
-    //  else
-    //  {
-    //    printf("%x/", rx_packet[0]);
-    //  }
-    //}
+    port.setPacketTimeout(18);
 
     // get rx_packet
     uint8_t rx_length = 0;
     uint8_t error = 0;
     checksum = 0;
-    port.setPacketTimeout(9);
 
     while (true)
     {
@@ -105,6 +91,7 @@ int main(void)
 
         if (rx_length >= 9)
         {
+          checksum = 0;
           for (uint16_t idx = 2; idx < 9 - 1; idx++)   // except header, checksum
             checksum += rx_packet[idx];
           checksum = ~checksum; // checksum
@@ -112,6 +99,12 @@ int main(void)
           if (checksum != rx_packet[8])
           {
             error = 2;
+            printf("%x %x\n", checksum, rx_packet[8]);
+            break;
+          }
+          else
+          {
+            error = 0;
             break;
           }
         }
@@ -122,7 +115,6 @@ int main(void)
         error = 1;
         break;
       }
-
     }
 
     
@@ -134,15 +126,21 @@ int main(void)
     }
     else if (error == 1)
     {
-      std::cout << "RX_FAIL" << std::endl;
-      break;
+      std::cout << "RX_FAIL time out" << std::endl;
+      //break;
     }
     else if (error == 2)
     {
       std::cout << "check sum error" << std::endl;
     }
 
+    rx_length = 0;
+    error = 0;
     Sleep(1000);
+
+    for (int ii = 0; ii < 30; ii++)
+      printf("%X ", rx_packet[ii]);
+    printf("\n");
   }
 
 

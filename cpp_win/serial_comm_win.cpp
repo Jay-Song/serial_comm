@@ -214,7 +214,9 @@ void SerialCommWin::setPacketTimeout(uint16_t packet_length)
 
 bool SerialCommWin::isPacketTimeout()
 {
-  if (getTimeSinceStart() > packet_timeout_msec_)
+  double aaaa = getTimeSinceStart();
+  printf("%f %f\n", aaaa, packet_timeout_msec_);
+  if (aaaa > packet_timeout_msec_)
   {
     packet_timeout_msec_ = 0;
     return true;
