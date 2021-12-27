@@ -85,10 +85,13 @@ int main(void)
         if (idx != 0) //memmove : use for loop because it will be also used in arduino
         {
           for (uint8_t i = idx; i < rx_length; i++)
-            rx_packet[i - idx] = rx_packet[idx];
+            rx_packet[i - idx] = rx_packet[i];
           rx_length -= idx;
         }
+        else if (idx == 9)
+        {
 
+        }
         if (rx_length >= 9)
         {
           checksum = 0;
