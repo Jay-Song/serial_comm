@@ -8,7 +8,7 @@ int main(void)
 {
   std::cout << "Start" << std::endl;
 
-  jay::SerialCommWin port("COM3");
+  jay::SerialCommWin port("COM4");
   port.openPort(1000000); // 1 Mbps
 
   uint8_t tx_packet[7]; // total_packet_length = 7
@@ -52,6 +52,7 @@ int main(void)
     }
 
     // send read instruction
+    port.setPacketTimeout(9);
     uint8_t written_packet_length = port.writePort(tx_packet, 7); //total_packet_length = 7
     if (written_packet_length != 7)
     {
@@ -59,10 +60,12 @@ int main(void)
       break;
     }
     else
-      std::cout << "SEND" << std::endl;
+    {
+      //std::cout << "SEND" << std::endl;
+    }
 
-    port.setPacketTimeout(18);
-
+    
+    std::cout << "after_tx : " <<  port.getTimeSinceStart();
     // get rx_packet
     uint8_t rx_length = 0;
     uint8_t error = 0;
@@ -70,6 +73,12 @@ int main(void)
 
     while (true)
     {
+      if (port.isPacketTimeout())
+      {
+        error = 1;
+        break;
+      }
+
       rx_length += port.readPort(&rx_packet[rx_length], 9 - rx_length);
 
       if (rx_length >= 9)
@@ -82,7 +91,7 @@ int main(void)
             break;
         }
 
-        if (idx != 0) //memmove : use for loop because it will be also used in arduino
+        if ((idx != 0) && (idx!= 8)) //memmove : use for loop because it will be also used in arduino
         {
           for (uint8_t i = idx; i < rx_length; i++)
             rx_packet[i - idx] = rx_packet[i];
@@ -90,60 +99,59 @@ int main(void)
         }
         else if (idx == 9)
         {
-
-        }
-        if (rx_length >= 9)
-        {
-          checksum = 0;
-          for (uint16_t idx = 2; idx < 9 - 1; idx++)   // except header, checksum
-            checksum += rx_packet[idx];
-          checksum = ~checksum; // checksum
-
-          if (checksum != rx_packet[8])
-          {
-            error = 2;
-            printf("%x %x\n", checksum, rx_packet[8]);
-            break;
-          }
-          else
-          {
-            error = 0;
-            break;
-          }
+          for (uint8_t i = 8; i < rx_length; i++)
+            rx_packet[i - 8] = rx_packet[i];
+          rx_length -= 8;
+          continue;
         }
       }
 
-      if (port.isPacketTimeout())
+      if (rx_length >= 9)
       {
-        error = 1;
-        break;
+        checksum = 0;
+        for (uint16_t idx = 2; idx < 9 - 1; idx++)   // except header, checksum
+          checksum += rx_packet[idx];
+        checksum = ~checksum; // checksum
+
+        if (checksum != rx_packet[8])
+        {
+          error = 2;
+          printf("currupted: %x %x\n", checksum, rx_packet[8]);
+          break;
+        }
+        else
+        {
+          error = 0;
+          break;
+        }
       }
     }
 
-    
     //check error and print the value
     if (error == 0)
     {
       float value = *(float*)&rx_packet[4];
-      printf("%x %x %x %x | %f\n", rx_packet[4], rx_packet[5], rx_packet[6], rx_packet[7], value);
+      //printf("%x %x %x %x | %f\n", rx_packet[4], rx_packet[5], rx_packet[6], rx_packet[7], value);
     }
     else if (error == 1)
     {
-      std::cout << "RX_FAIL time out" << std::endl;
+      //std::cout << "RX_FAIL time out" << std::endl;
       //break;
     }
     else if (error == 2)
     {
-      std::cout << "check sum error" << std::endl;
+      //std::cout << "check sum error" << std::endl;
     }
 
     rx_length = 0;
     error = 0;
-    Sleep(1000);
+    //Sleep(1000);
 
-    for (int ii = 0; ii < 30; ii++)
-      printf("%X ", rx_packet[ii]);
-    printf("\n");
+    //for (int ii = 0; ii < 30; ii++)
+    //  printf("%X ", rx_packet[ii]);
+    //printf("\n");
+    std::cout << " after_rx : " << port.getTimeSinceStart();
+    std::cout << std::endl;
   }
 
 

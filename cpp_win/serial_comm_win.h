@@ -19,10 +19,10 @@ namespace jay
     double packet_timeout_msec_;
     double tx_time_per_byte_msec_;
 
+  public:
     double getCurrentTime();
     double getTimeSinceStart();
 
-  public:
     SerialCommWin(std::string port_name);
     virtual ~SerialCommWin();
 

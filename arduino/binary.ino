@@ -36,10 +36,6 @@ void setup()
   }
 }
 
-
-
-
-
 void loop()
 {
   if (Serial.available() > 0)
@@ -57,11 +53,19 @@ void loop()
         break;
     }
 
-    if (idx != 0) //memmove : use for loop because it will be also used in arduino
+    if ((idx != 0) && (idx != 6))//memmove : use for loop because it will be also used in arduino
     {
       for (uint8_t i = idx; i < rx_length; i++)
-        rx_packet[i - idx] = rx_packet[idx];
+        rx_packet[i - idx] = rx_packet[i];
       rx_length -= idx;
+    }
+
+    if (idx == 6)
+    {
+      for (uint8_t i = 6; i < rx_length; i++)
+        rx_packet[i - 6] = rx_packet[i];
+      rx_length -= 6;
+      return;
     }
   }
 
@@ -102,5 +106,4 @@ void loop()
     value.valuef += 1.0;
     error = 0;
   }
-
 }
